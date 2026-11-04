@@ -5,6 +5,7 @@ require 'csv'
 require_relative 'planner'
 require_relative 'hardware'
 require_relative 'smart_joint'
+require_relative 'mounting'
 
 module ZillaFurnitureTools
   module Main
@@ -12,7 +13,8 @@ module ZillaFurnitureTools
     ATTRIBUTE = 'ZillaFurnitureTools'.freeze
     MIN_PANEL_MM = 12.0
     MAX_PANEL_MM = 25.0
-    EXCLUDED_NAME = /drawer|shuh|shukh|шухляд|ящик|висув|фасад|front panel|handle|ручк|напрямн|runner|rail|wheel|caster|опор|колес|ніжк|ножк/i
+    EXCLUDED_NAME = /drawer|shuh|shukh|шухляд|ящик|висув|фасад|front panel|напрямн|runner|slide/i
+    SKIPPED_NAME = /concept|envelope|reference|handle|ручк|wheel|caster|опор|колес|ніжк|ножк/i
 
     def show_dialog
       unless @dialog
@@ -72,7 +74,7 @@ module ZillaFurnitureTools
       report_error(e)
     end
 
-    def collect_selected
+    def collect_selected(include_drawer: false)
       model = Sketchup.active_model
       raise 'No active SketchUp model' unless model
       selected = model.selection.grep(Sketchup::Group) + model.selection.grep(Sketchup::ComponentInstance)
@@ -81,22 +83,23 @@ module ZillaFurnitureTools
       parts = []
       skipped = []
       selected.uniq.each do |instance|
-        scan_instance(instance, Geom::Transformation.new, [], false, parts, skipped, 0)
+        scan_instance(instance, Geom::Transformation.new, [], false, parts, skipped, 0, include_drawer)
       end
       raise 'No rectangular 12–25 mm panels found in the selection' if parts.empty?
       [parts, skipped.uniq]
     end
 
-    def scan_instance(instance, parent_transform, parent_ids, excluded, parts, skipped, depth)
+    def scan_instance(instance, parent_transform, parent_ids, excluded, parts, skipped, depth, include_drawer = false)
       return if depth > 20 || instance.deleted?
       return if instance.get_attribute(ATTRIBUTE, 'generated', false)
 
       name = instance.name.to_s.strip
       name = instance.definition.name.to_s.strip if name.empty?
       name = "Part #{instance.persistent_id}" if name.empty?
+      return if SKIPPED_NAME.match?(name)
       role = instance.get_attribute(ATTRIBUTE, 'role', '').to_s
       role = 'drawer' if role.empty? && EXCLUDED_NAME.match?(name)
-      excluded ||= %w[drawer exclude hardware].include?(role)
+      excluded ||= %w[exclude hardware].include?(role) || (role == 'drawer' && !include_drawer)
       path = parent_ids + [instance.persistent_id.to_s]
       transform = parent_transform * instance.transformation
       child_entities = instance.definition.entities
@@ -112,7 +115,7 @@ module ZillaFurnitureTools
           skipped << "Not a valid axis-aligned 12–25 mm panel: #{name}"
         end
       elsif !children.empty?
-        children.each { |child| scan_instance(child, transform, path, excluded, parts, skipped, depth + 1) }
+        children.each { |child| scan_instance(child, transform, path, excluded, parts, skipped, depth + 1, include_drawer) }
       elsif !excluded
         skipped << "Non-rectangular geometry skipped: #{name}"
       end
@@ -249,6 +252,110 @@ module ZillaFurnitureTools
       report_error(e)
     end
 
+    def drawer_front_guides
+      parts, = collect_selected(include_drawer: true)
+      front = parts.find { |p| p[:name].match?(/front_facade|фасад/i) }
+      wall = parts.find { |p| p[:name].match?(/drawer_front_wall|передня.*шухляд/i) }
+      raise 'Select the drawer facade and front wall, or their parent assembly' unless front && wall
+      values = UI.inputbox(['Fasteners (2–4)', 'Offset from both ends, mm', 'Guide diameter, mm', 'Facade blind depth, mm'],
+                           [2, 80, 5, 12], 'ZFT — drawer front, GUIDES ONLY')
+      return unless values
+      plan = Mounting.drawer_front(front, wall, count: values[0], offset_mm: values[1],
+                                  diameter_mm: values[2], front_depth_mm: values[3])
+      add_mount_guides(plan)
+    rescue StandardError => e
+      report_error(e)
+      UI.messagebox("ZFT: #{e.message}")
+    end
+
+    def slide_guides
+      parts, = collect_selected(include_drawer: true)
+      sides = %w[Left Right].filter_map do |side|
+        cabinet = parts.find { |p| p[:name] == "#{side}_Side" }
+        drawer = parts.find { |p| p[:name] == "Drawer_#{side}" }
+        [side, cabinet, drawer] if cabinet && drawer
+      end
+      raise 'Select a cabinet side and matching drawer side, or their parent assembly' if sides.empty?
+      side, cabinet, drawer = if sides.length == 1
+        sides.first
+      else
+        choice = UI.inputbox(['Side'], ['Left'], ['Left|Right'], 'ZFT — select slide side')
+        return unless choice
+        sides.find { |item| item[0] == choice[0] } || raise('Selected side is unavailable')
+      end
+      values = UI.inputbox(['Cabinet rail centers from front, mm (comma-separated)',
+                            'Drawer rail centers from front, mm (comma-separated)',
+                            'Rail center above drawer-side bottom, mm', 'Blind guide diameter, mm', 'Blind guide depth, mm'],
+                           ['', '', 21, 5, 10], "ZFT — #{side} runner, enter exact SKU drawing positions")
+      return unless values
+      plan = Mounting.slide_pair(cabinet, drawer,
+        cabinet_offsets_mm: values[0], drawer_offsets_mm: values[1],
+        height_from_drawer_bottom_mm: values[2], diameter_mm: values[3], depth_mm: values[4])
+      add_mount_guides(plan)
+    rescue StandardError => e
+      report_error(e)
+      UI.messagebox("ZFT: #{e.message}")
+    end
+
+    def add_mount_guides(plan, notify: true)
+      model = Sketchup.active_model
+      model.start_operation("ZFT: #{plan[:kind]} guides", true)
+      begin
+        group = model.active_entities.add_group
+        group.name = "ZFT #{plan[:kind]} — non-cutting guides"
+        group.set_attribute(ATTRIBUTE, 'generated', true)
+        group.set_attribute(ATTRIBUTE, 'plan_json', JSON.generate(plan))
+        plan[:holes].each do |hole|
+          position = hole[:xyz_mm].map(&:mm)
+          point = Geom::Point3d.new(*position)
+          normal = Geom::Vector3d.new(*hole[:direction])
+          group.entities.add_circle(point, normal, (hole[:diameter_mm] / 2.0).mm, 24)
+          marker = group.entities.add_cpoint(point)
+          marker.set_attribute(ATTRIBUTE, 'hole_json', JSON.generate(hole))
+        end
+        model.commit_operation
+      rescue StandardError
+        model.abort_operation
+        raise
+      end
+      UI.messagebox("Створено #{plan[:holes].length} знімних міток. ДСП не просвердлено. #{plan[:warning]}") if notify
+      plan
+    end
+
+    def export_mount_guides_csv
+      model = Sketchup.active_model
+      groups = model.active_entities.grep(Sketchup::Group).select do |group|
+        group.get_attribute(ATTRIBUTE, 'generated', false) &&
+          group.name.start_with?('ZFT drawer_front', 'ZFT slide_pair')
+      end
+      raise 'No drawer-front or slide guide groups in the active editing context' if groups.empty?
+      path = UI.savepanel('Export mounting guides CSV', nil, 'zilla_mounting_guides_REVIEW.csv')
+      return unless path
+      content = mount_guides_csv(groups)
+      File.binwrite(path, "\xEF\xBB\xBF".b + content.encode('UTF-8').b)
+      UI.messagebox('CSV збережено. Це контрольні координати, не файл імпорту свердлінь у Viyar Pro.')
+      path
+    rescue StandardError => e
+      report_error(e)
+      UI.messagebox("ZFT: #{e.message}")
+    end
+
+    def mount_guides_csv(groups)
+      headings = %w[status profile operation part_id part_name x_mm y_mm z_mm dir_x dir_y dir_z diameter_mm depth_mm warning]
+      CSV.generate(col_sep: ';', force_quotes: true) do |csv|
+        csv << headings
+        groups.each do |group|
+          plan = JSON.parse(group.get_attribute(ATTRIBUTE, 'plan_json'))
+          plan.fetch('holes').each do |hole|
+            xyz = hole.fetch('xyz_mm')
+            direction = hole.fetch('direction')
+            csv << ['GUIDE_ONLY_NOT_VIYAR_IMPORT', plan['profile_id'], hole['kind'], hole['part_id'],
+                    hole['part_name'], *xyz, *direction, hole['diameter_mm'], hole['depth_mm'], plan['warning']]
+          end
+        end
+      end
+    end
+
     def report_error(error)
       warn("[ZillaFurnitureTools] #{error.class}: #{error.message}\n#{Array(error.backtrace).first(4).join("\n")}")
       dispatch(type: 'error', message: error.message.to_s)
@@ -258,6 +365,9 @@ module ZillaFurnitureTools
       menu = UI.menu('Plugins')
       menu.add_item('Zilla Furniture Tools — drill planner') { show_dialog }
       menu.add_item('Zilla Furniture Tools — Smart Joint') { start_smart_joint }
+      menu.add_item('Zilla Furniture Tools — Drawer front guides') { drawer_front_guides }
+      menu.add_item('Zilla Furniture Tools — Slide guides') { slide_guides }
+      menu.add_item('Zilla Furniture Tools — Export mounting guides CSV') { export_mount_guides_csv }
       @menu_installed = true
     end
   end

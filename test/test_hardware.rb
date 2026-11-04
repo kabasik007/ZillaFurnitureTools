@@ -69,7 +69,7 @@ class TestHardware < Minitest::Test
 
   def test_catalog_has_no_unsupported_mounting_templates
     catalog = ZillaFurnitureTools::Hardware.catalog
-    %w[slide_side_mount slide_undermount drawer_front_adjustable caster_plate].each do |id|
+    %w[slide_side_mount slide_undermount drawer_front_adjustable caster_plate manual_facade_mount manual_side_runner].each do |id|
       assert_equal false, catalog.find { |p| p[:id] == id }[:drillable]
     end
   end

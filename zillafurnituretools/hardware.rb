@@ -23,6 +23,16 @@ module ZillaFurnitureTools
         label: 'Фасад шухляди: регульоване кріплення', kind: 'drawer_front', note: 'Для свердлінь потрібен конкретний артикул, профіль поки без схеми',
         verified: false, drillable: false
       },
+      'manual_facade_mount' => {
+        label: 'Фасад шухляди: ручна розмітка', kind: 'drawer_front',
+        note: 'Парні мітки крізь передню стінку й глухо у фасад; виберіть конкретне кріплення та перевірте його креслення',
+        verified: false, drillable: false, guide_only: true
+      },
+      'manual_side_runner' => {
+        label: 'Бокова напрямна: ручна розмітка', kind: 'slide',
+        note: 'Окремі координати отворів корпусної й шухлядної частин з креслення конкретного артикулу',
+        verified: false, drillable: false, guide_only: true
+      },
       'slide_side_mount' => {
         label: 'Телескопічна напрямна: бокова', kind: 'slide', note: 'Необхідні артикул, довжина і PDF креслення кріпильних отворів',
         verified: false, drillable: false
