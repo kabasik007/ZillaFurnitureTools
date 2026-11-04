@@ -42,7 +42,7 @@ footer { border-top:1px solid var(--stroke); padding:12px 22px; color:var(--mute
 </style>
 </head>
 <body>
-<header><div><h1><span>Zilla</span> Furniture Tools</h1><div class="sub">SketchUp · Confirmat Drill Planner · v0.1.0</div></div><div class="flag">PREVIEW · NO CUTTING</div></header>
+<header><div><h1><span>Zilla</span> Furniture Tools</h1><div class="sub">SketchUp · Confirmat Drill Planner · v0.2.0</div></div><div class="flag">PREVIEW · NO CUTTING</div></header>
 <main>
 <section>
 <h2>1. Налаштування / Settings</h2>
@@ -68,6 +68,8 @@ footer { border-top:1px solid var(--stroke); padding:12px 22px; color:var(--mute
 </section>
 <section>
 <h2>2. Аналіз і підготовка</h2>
+<div class="actions"><button class="primary" onclick="action('smartJoint')">🖱 Smart Joint — ручний вибір кріплення</button></div>
+<p class="hint">У SketchUp наведи курсор на стик двох перпендикулярних ДСП, клацни та обери конфірмат або шкант. Це лише маркери, не вирізання.</p>
 <div class="actions"><button class="primary" onclick="action('scan')">Аналізувати стики</button><button onclick="action('guides')">Нанести розмітку</button><button onclick="action('export')">Експорт CSV</button></div>
 <div id="notice" role="status"></div>
 <div class="stats"><div class="stat"><strong id="stat-panels">—</strong><small>ДСП-деталей</small></div><div class="stat"><strong id="stat-joints">—</strong><small>Стиків</small></div><div class="stat"><strong id="stat-drill_operations">—</strong><small>Операцій свердління</small></div><div class="stat"><strong id="stat-edge_candidates">—</strong><small>Кандидатів на кромку</small></div></div>
