@@ -6,8 +6,8 @@ module ZillaFurnitureTools
   unless defined?(EXTENSION)
     EXTENSION = SketchupExtension.new('Zilla Furniture Tools', 'zillafurnituretools/main')
     EXTENSION.creator = 'Zilla Furniture Tools'
-    EXTENSION.description = 'Furniture panel scanning, confirmat drilling guides, edge-banding and CSV plans.'
-    EXTENSION.version = '0.1.0'
+    EXTENSION.description = 'Manual Smart Joint, confirmat/dowel drill guides, edge candidates and CSV plans.'
+    EXTENSION.version = '0.2.0'
     Sketchup.register_extension(EXTENSION, true)
   end
 end
