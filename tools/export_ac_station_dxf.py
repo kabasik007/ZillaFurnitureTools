@@ -6,6 +6,7 @@ These are technical drawings, not a proven ViyarPro/ABF interchange file.
 from __future__ import annotations
 
 import json
+import csv
 from pathlib import Path
 
 ROOT = Path('M:/projects/furniture/AC-Station')
@@ -98,5 +99,22 @@ for part in manifest['parts']:
         save_dxf(DXF_DIR / f'{name}_EDGE_{"XYZ"[axis]}{"POS" if sign > 0 else "NEG"}_TEST.dxf', edge_entities, edge_layers)
 
 (OUT / 'dxf_index.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
+by_name = {part['name']: part for part in manifest['parts']}
+with (OUT / 'drilling_review.csv').open('w', encoding='utf-8-sig', newline='') as handle:
+    writer = csv.writer(handle, delimiter=';')
+    writer.writerow(['part', 'operation', 'entry_face', 'view_u_mm', 'view_v_mm', 'view_datum',
+                     'x_mm', 'y_mm', 'z_mm', 'local_x_mm', 'local_y_mm', 'local_z_mm',
+                     'dir_x', 'dir_y', 'dir_z', 'diameter_mm', 'depth_mm', 'status'])
+    for hole in manifest['holes']:
+        part = by_name[hole['part_name']]
+        thin = part['thickness_axis']
+        axis = next(i for i, value in enumerate(hole['direction']) if value)
+        long, short = sorted((i for i in range(3) if i != thin), key=lambda i: -part['dims_mm'][i])
+        u_axis, v_axis = (long, short) if axis == thin else (next(i for i in (long, short) if i != axis), thin)
+        u = round(hole['xyz_mm'][u_axis] - part['min'][u_axis], 3)
+        v = round(hole['xyz_mm'][v_axis] - part['min'][v_axis], 3)
+        writer.writerow([hole['part_name'], hole['kind'], hole['face'], u, v,
+                         'MIN_U_MIN_V_FINISHED_CONTOUR', *hole['xyz_mm'], *hole['local_bbox_mm'],
+                         *hole['direction'], hole['diameter_mm'], hole['depth_mm'], 'TEST_REVIEW'])
 print(f'{len(summary)} face DXFs; {sum(row["face_holes"] for row in summary)} face holes; '
       f'{sum(row["edge_holes"] for row in summary)} edge holes')

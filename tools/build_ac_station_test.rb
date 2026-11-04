@@ -84,9 +84,17 @@ manifest = {
 }
 File.write(File.join(out, 'drilling_manifest.json'), JSON.pretty_generate(manifest))
 CSV.open(File.join(out, 'drilling_review.csv'), 'wb', col_sep: ';', write_headers: true,
-  headers: %w[part operation x_mm y_mm z_mm local_x_mm local_y_mm local_z_mm dir_x dir_y dir_z diameter_mm depth_mm status]) do |csv|
+  headers: %w[part operation entry_face view_u_mm view_v_mm view_datum x_mm y_mm z_mm local_x_mm local_y_mm local_z_mm dir_x dir_y dir_z diameter_mm depth_mm status]) do |csv|
   holes.each do |hole|
-    csv << [hole[:part_name], hole[:kind], *hole[:xyz_mm], *hole[:local_bbox_mm],
+    part = by_name.fetch(hole[:part_name])
+    thin = part[:thickness_axis]
+    axis = hole[:direction].index { |value| value != 0 }
+    long, short = ([0, 1, 2] - [thin]).sort_by { |i| -part[:dims_mm][i] }
+    u_axis, v_axis = axis == thin ? [long, short] : [([long, short] - [axis]).first, thin]
+    u = (hole[:xyz_mm][u_axis] - part[:min][u_axis]).round(3)
+    v = (hole[:xyz_mm][v_axis] - part[:min][v_axis]).round(3)
+    csv << [hole[:part_name], hole[:kind], hole[:face], u, v, 'MIN_U_MIN_V_FINISHED_CONTOUR',
+            *hole[:xyz_mm], *hole[:local_bbox_mm],
             *hole[:direction], hole[:diameter_mm], hole[:depth_mm], 'TEST_REVIEW']
   end
 end
