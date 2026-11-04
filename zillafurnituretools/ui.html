@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zilla Furniture Tools</title>
+<style>
+:root { color-scheme: dark; --bg:#111827; --panel:#1b2535; --stroke:#324052; --text:#edf3fa; --muted:#9fb0c4; --sky:#41b4ed; --amber:#fbbf63; --green:#68d1af }
+* { box-sizing: border-box }
+body { margin:0; background:var(--bg); color:var(--text); font:13px/1.45 'Segoe UI',Arial,sans-serif }
+header { display:flex; justify-content:space-between; gap:18px; padding:18px 22px; border-bottom:1px solid var(--stroke); align-items:center }
+h1 { font-size:21px; letter-spacing:.2px; margin:0 } h1 span { color:var(--sky) }
+.sub,.hint { color:var(--muted); font-size:12px } .flag { padding:5px 9px; border:1px solid #5f4727; color:var(--amber); border-radius:7px; white-space:nowrap }
+main { padding:18px 22px 26px; display:grid; grid-template-columns:300px minmax(0,1fr); gap:16px }
+section { background:var(--panel); border:1px solid var(--stroke); border-radius:12px; padding:16px; min-width:0 }
+h2 { font-size:15px; margin:0 0 14px } h3 { font-size:13px; margin:16px 0 7px }
+fieldset { border:0; padding:0; margin:0 } label { display:block; margin-bottom:11px; color:var(--muted); font-size:12px }
+input, select { display:block; width:100%; border:1px solid #4b5b6e; border-radius:7px; background:#0e1827; color:var(--text); font:inherit; font-size:14px; margin-top:5px; padding:8px 10px }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 11px }
+button { cursor:pointer; background:#273a50; color:var(--text); border:1px solid #4e6074; padding:9px 12px; border-radius:8px; font-weight:600; text-align:center }
+button:hover { background:#324c66 } button.primary { background:#097fba; border-color:#0ea5e9 } button.primary:hover { background:#086a98 }
+button:focus-visible { outline:2px solid var(--sky) } .actions { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px }
+.actions button { flex:1 1 auto } .muted-button { font-weight:400; font-size:12px }
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:15px }
+.stat { background:#101b2b; border:1px solid var(--stroke); border-radius:9px; padding:10px }
+.stat strong { display:block; font-size:22px; font-weight:650; color:var(--sky) }
+.stat small { color:var(--muted); font-size:11px }
+.tabs { display:flex; gap:5px; flex-wrap:wrap; margin:6px 0 10px }
+.tabs button { padding:6px 10px; font-size:12px; border-radius:6px } .tabs .active { border-color:var(--sky); background:#174c6a }
+.tablebox { overflow:auto; max-height:270px; border:1px solid var(--stroke); border-radius:8px }
+table { width:100%; border-collapse:collapse; font-size:12px; white-space:nowrap }
+th,td { padding:7px 9px; text-align:left; border-bottom:1px solid #304054 }
+th { position:sticky; top:0; background:#26364b; color:#c8d9e9 }
+td { color:#ecf0f5 } td:first-child { color:var(--sky) }
+#notice { display:none; padding:10px; margin:0 0 13px; border:1px solid #445669; background:#152a3e; border-radius:8px; overflow-wrap:anywhere }
+#notice.error { color:#ffb8b8; border-color:#9c4c4c; display:block } #notice.show { display:block }
+.warn { border:1px solid #725529; color:#ffe0a8; background:#3a2c1a; border-radius:8px; padding:9px 11px; margin-top:12px; max-height:130px; overflow:auto }
+.warn ul { margin:4px 0; padding-left:17px } .small { margin-top:11px; font-size:11px; color:var(--muted) }
+hr { border:0; border-top:1px solid var(--stroke); margin:17px 0 }
+footer { border-top:1px solid var(--stroke); padding:12px 22px; color:var(--muted); font-size:11px }
+@media(max-width:780px) { main { grid-template-columns:1fr } .stats { grid-template-columns:repeat(2,1fr) } }
+</style>
+</head>
+<body>
+<header><div><h1><span>Zilla</span> Furniture Tools</h1><div class="sub">SketchUp · Confirmat Drill Planner · v0.1.0</div></div><div class="flag">PREVIEW · NO CUTTING</div></header>
+<main>
+<section>
+<h2>1. Налаштування / Settings</h2>
+<p class="hint">Виділи тумбу або її компоненти в SketchUp. Корпус визначається за прямокутними деталями ДСП 12–25 мм.</p>
+<fieldset>
+<div class="grid2">
+<label>Отвір у пласть, Ø мм <input id="face_diameter_mm" type="number" min="2" max="15" step="0.5" value="7"></label>
+<label>Отвір у торець, Ø мм <input id="edge_diameter_mm" type="number" min="2" max="15" step="0.5" value="5"></label>
+<label>Довжина конфірмата, мм <input id="screw_length_mm" type="number" min="20" max="120" value="50"></label>
+<label>Глибина в торець, мм <input id="edge_pilot_depth_mm" type="number" min="10" max="100" value="30"></label>
+<label>Відступ від кінця, мм <input id="end_offset_mm" type="number" min="15" max="150" value="50"></label>
+<label>Точність стику, мм <input id="touch_tolerance_mm" type="number" min="0.05" max="2" step="0.05" value="0.8"></label>
+<label>Кромка PVC, мм <input id="edge_banding_mm" type="number" min="0.1" max="4" step="0.1" value="1"></label>
+<label>Лицьова сторона корпусу
+<select id="front"><option value="-Y">-Y</option><option value="+Y">+Y</option><option value="-X">-X</option><option value="+X">+X</option></select>
+</label>
+</div>
+</fieldset>
+<hr>
+<h3>Категорія виділеного компонента</h3>
+<div class="actions"><button class="muted-button" onclick="action('markDrawer')">Шухляда</button><button class="muted-button" onclick="action('markCabinet')">Корпус</button><button class="muted-button" onclick="action('markExclude')">Виключити</button></div>
+<p class="hint">Шухляди, фасади, ручки, колеса та ніжки автоматично пропускаються за назвою (або можна виключити вручну).</p>
+</section>
+<section>
+<h2>2. Аналіз і підготовка</h2>
+<div class="actions"><button class="primary" onclick="action('scan')">Аналізувати стики</button><button onclick="action('guides')">Нанести розмітку</button><button onclick="action('export')">Експорт CSV</button></div>
+<div id="notice" role="status"></div>
+<div class="stats"><div class="stat"><strong id="stat-panels">—</strong><small>ДСП-деталей</small></div><div class="stat"><strong id="stat-joints">—</strong><small>Стиків</small></div><div class="stat"><strong id="stat-drill_operations">—</strong><small>Операцій свердління</small></div><div class="stat"><strong id="stat-edge_candidates">—</strong><small>Кандидатів на кромку</small></div></div>
+<div class="tabs"><button data-tab="panels" class="active" onclick="tab('panels')">Деталі</button><button data-tab="joints" onclick="tab('joints')">З'єднання</button><button data-tab="holes" onclick="tab('holes')">Отвори</button><button data-tab="banding" onclick="tab('banding')">Кромка</button></div>
+<div class="tablebox"><table><thead id="table-head"><tr><th>Дані</th></tr></thead><tbody id="table-body"><tr><td>Виділи модель та натисни «Аналізувати стики»</td></tr></tbody></table></div>
+<div id="warnings"></div>
+<p class="small">Один конфірмат = дві операції свердління: у пласть і в торець. Кромка — лише пропозиція, не зміна матеріалів OpenCutList. CSV містить координати від мінімального кута габаритного прямокутника деталі, це ще не CNC/G-code.</p>
+<p class="small">Звичайні 7×50 мм і 5/7 мм тут — редагований стартовий профіль. Перед виготовленням звіряй конкретний конфірмат, свердло, товщину ДСП і присадку з виробником.</p>
+</section>
+</main>
+<footer>Перший прототип: безпечна розмітка і технологічна таблиця. Для реального різання, напрямних і ніжок потрібні окремі перевірені профілі.</footer>
+<script>
+(function(){
+'use strict';
+var data = null;
+var activeTab = 'panels';
+var inputIds = ['face_diameter_mm','edge_diameter_mm','screw_length_mm','edge_pilot_depth_mm','end_offset_mm','touch_tolerance_mm','edge_banding_mm','front'];
+function options(){var obj={};inputIds.forEach(function(id){var el=document.getElementById(id);obj[id]=id==='front'?el.value:Number(el.value);});return JSON.stringify(obj);}
+function cell(row,content){var c=document.createElement(row);c.textContent=String(content===undefined||content===null?'':content);return c;}
+function message(msg,isError){var n=document.getElementById('notice');n.textContent=msg;n.className=isError?'error':'show';}
+window.action=function(name){if(!window.sketchup || typeof window.sketchup[name] !== 'function'){message('SketchUp bridge is not available',true);return;}try{if(name==='scan'||name==='guides'||name==='export'){window.sketchup[name](options());}else{window.sketchup[name]();}}catch(e){message(e.message,true);}};
+window.tab=function(name){activeTab=name;Array.prototype.forEach.call(document.querySelectorAll('[data-tab]'),function(b){b.className=b.getAttribute('data-tab')===name?'active':'';});renderTable();};
+function renderTable(){if(!data)return;var cols,rows;
+  if(activeTab==='panels'){cols=['ID','Назва','Габарити, мм'];rows=data.panels.map(function(p){return[p.id,p.name,p.size_mm.join(' × ')];});}
+  else if(activeTab==='joints'){cols=['Стик','Наскрізна деталь','Торець деталі','Довжина стику, мм','Гвинти'];rows=data.joints.map(function(j){return[j.id,j.shell_name,j.butt_name,j.length_mm,j.screws];});}
+  else if(activeTab==='holes'){cols=['Стик','Деталь','Операція','Точка XYZ, мм','Напрям','Ø мм','Глибина, мм'];rows=data.holes.map(function(h){return[h.joint_id,h.part_name,h.kind,h.xyz_mm.join(', '),h.direction.join(', '),h.diameter_mm,h.depth_mm];});}
+  else{cols=['Деталь','Край','Довжина, мм','PVC, мм','Статус'];rows=data.banding.map(function(b){return[b.part_name,b.edge,b.length_mm,b.band_thickness_mm,b.status];});}
+  var head=document.getElementById('table-head');var body=document.getElementById('table-body');head.textContent='';body.textContent='';var tr=document.createElement('tr');cols.forEach(function(c){tr.appendChild(cell('th',c));});head.appendChild(tr);
+  if(!rows.length){var r=document.createElement('tr');r.appendChild(cell('td','Нічого не знайдено'));body.appendChild(r);return;}
+  rows.forEach(function(row){var tr=document.createElement('tr');row.forEach(function(v){tr.appendChild(cell('td',v));});body.appendChild(tr);});
+}
+window.ZFT={receive:function(msg){if(msg.type==='error'){message(msg.message,true);return;}if(msg.type==='message'){message(msg.message,false);return;}if(msg.type==='plan'){data=msg;Object.keys(msg.counts).forEach(function(k){document.getElementById('stat-'+k).textContent=msg.counts[k];});renderTable();var box=document.getElementById('warnings');box.textContent='';if(msg.warnings.length){var div=document.createElement('div');div.className='warn';var title=document.createElement('strong');title.textContent='Зауваження ('+msg.warnings.length+')';div.appendChild(title);var ul=document.createElement('ul');msg.warnings.forEach(function(w){var li=document.createElement('li');li.textContent=w;ul.appendChild(li);});div.appendChild(ul);box.appendChild(div);}message('План побудовано. Перевір таблицю отворів до експорту.',false);}}};
+if(window.sketchup && window.sketchup.scan){window.sketchup.scan(options());}
+})();
+</script>
+</body></html>
