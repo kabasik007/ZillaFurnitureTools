@@ -10,6 +10,6 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-      - run: ruby -c zillafurnituretools.rb && ruby -c zillafurnituretools/main.rb && ruby -c zillafurnituretools/planner.rb && ruby -c zillafurnituretools/hardware.rb && ruby -c zillafurnituretools/mounting.rb && ruby -c zillafurnituretools/smart_joint.rb
+      - run: ruby -c zillafurnituretools.rb && ruby -c zillafurnituretools/main.rb && ruby -c zillafurnituretools/planner.rb && ruby -c zillafurnituretools/hardware.rb && ruby -c zillafurnituretools/mounting.rb && ruby -c zillafurnituretools/manufacturing.rb && ruby -c zillafurnituretools/smart_joint.rb
       - run: ruby test/test_planner.rb && ruby test/test_hardware.rb && ruby test/test_mounting.rb
       - run: python3 tools/build_rbz.py

@@ -6,6 +6,7 @@ require_relative 'planner'
 require_relative 'hardware'
 require_relative 'smart_joint'
 require_relative 'mounting'
+require_relative 'manufacturing'
 
 module ZillaFurnitureTools
   module Main
@@ -356,6 +357,81 @@ module ZillaFurnitureTools
       end
     end
 
+    def leaf_instances(roots)
+      found = {}
+      walk = lambda do |instance, parent_transform|
+        children = instance.definition.entities.grep(Sketchup::Group) +
+          instance.definition.entities.grep(Sketchup::ComponentInstance)
+        if children.empty?
+          raise "Duplicate component name: #{instance.name}" if found.key?(instance.name)
+          found[instance.name] = [instance, parent_transform]
+        else
+          children.each { |child| walk.call(child, parent_transform * instance.transformation) }
+        end
+      end
+      roots.each { |root| walk.call(root, Geom::Transformation.new) }
+      found
+    end
+
+    def apply_edge_plan_dialog
+      roots = Sketchup.active_model.selection.grep(Sketchup::Group) +
+        Sketchup.active_model.selection.grep(Sketchup::ComponentInstance)
+      raise 'Select the cabinet assembly first' if roots.empty?
+      csv_path = UI.openpanel('Choose edge plan CSV', nil, 'CSV|*.csv||')
+      return unless csv_path
+      names = CSV.read(csv_path, headers: true, col_sep: ';', encoding: 'bom|utf-8').map { |row| row['Деталь'] }
+      found = leaf_instances(roots)
+      raise 'Edge plan parts are missing from selection' unless (names - found.keys).empty?
+      model = Sketchup.active_model
+      model.start_operation('ZFT: apply OCL edge banding', true)
+      begin
+        result = Manufacturing.apply_edge_plan!(model, names.map { |name| found.fetch(name).first }, csv_path)
+        model.commit_operation
+      rescue StandardError
+        model.abort_operation
+        raise
+      end
+      UI.messagebox("Крайку призначено для #{result.length} плит. Перевірте OpenCutList та пильні розміри.")
+    rescue StandardError => e
+      report_error(e)
+      UI.messagebox("ZFT: #{e.message}")
+    end
+
+    def drill_selected_guides_in_copy
+      model = Sketchup.active_model
+      guides = model.selection.grep(Sketchup::Group).select do |group|
+        group.get_attribute(ATTRIBUTE, 'generated', false) && group.get_attribute(ATTRIBUTE, 'plan_json')
+      end
+      raise 'Select one or more ZFT guide groups first' if guides.empty?
+      holes = guides.flat_map { |group| JSON.parse(group.get_attribute(ATTRIBUTE, 'plan_json')).fetch('holes') }
+      raise 'Selected guides contain no holes' if holes.empty?
+      path = UI.savepanel('Save a NEW drilled SketchUp test copy', nil, 'ZFT_drilling_TEST.skp')
+      return unless path
+      path += '.skp' unless path.downcase.end_with?('.skp')
+      raise 'Choose a new file name; existing files cannot be overwritten' if File.exist?(path)
+      raise 'Could not save test copy' unless model.save(path)
+      roots = model.entities.grep(Sketchup::Group) + model.entities.grep(Sketchup::ComponentInstance)
+      found = leaf_instances(roots)
+      model.start_operation('ZFT: cut selected guide holes', true)
+      begin
+        holes.each do |raw|
+          hole = raw.transform_keys(&:to_sym)
+          instance, parent_transform = found.fetch(hole.fetch(:part_name))
+          Manufacturing.cut_hole!(instance, hole, parent_transform)
+        end
+        guides.each { |group| group.hidden = true }
+        model.commit_operation
+      rescue StandardError
+        model.abort_operation
+        raise
+      end
+      raise 'Could not save drilled test copy' unless model.save
+      UI.messagebox("Вирізано #{holes.length} отворів у тестовій копії. Перевірте кожну деталь і фурнітуру перед експортом.")
+    rescue StandardError => e
+      report_error(e)
+      UI.messagebox("ZFT: #{e.message}")
+    end
+
     def report_error(error)
       warn("[ZillaFurnitureTools] #{error.class}: #{error.message}\n#{Array(error.backtrace).first(4).join("\n")}")
       dispatch(type: 'error', message: error.message.to_s)
@@ -368,6 +444,8 @@ module ZillaFurnitureTools
       menu.add_item('Zilla Furniture Tools — Drawer front guides') { drawer_front_guides }
       menu.add_item('Zilla Furniture Tools — Slide guides') { slide_guides }
       menu.add_item('Zilla Furniture Tools — Export mounting guides CSV') { export_mount_guides_csv }
+      menu.add_item('Zilla Furniture Tools — Apply OpenCutList edge plan CSV') { apply_edge_plan_dialog }
+      menu.add_item('Zilla Furniture Tools — Drill selected guides in new SKP') { drill_selected_guides_in_copy }
       @menu_installed = true
     end
   end

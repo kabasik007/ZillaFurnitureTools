@@ -4,10 +4,11 @@ from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / 'dist' / 'ZillaFurnitureTools-v0.3.0.rbz'
+OUTPUT = ROOT / 'dist' / 'ZillaFurnitureTools-v0.4.0.rbz'
 FILES = ['zillafurnituretools.rb', 'zillafurnituretools/main.rb',
          'zillafurnituretools/planner.rb', 'zillafurnituretools/hardware.rb',
          'zillafurnituretools/mounting.rb',
+         'zillafurnituretools/manufacturing.rb',
          'zillafurnituretools/smart_joint.rb', 'zillafurnituretools/smart_joint.html',
          'zillafurnituretools/ui.html']
 OUTPUT.parent.mkdir(exist_ok=True)
