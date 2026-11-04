@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZFT Smart Joint</title>
+<style>
+:root{color-scheme:dark;--bg:#101927;--panel:#182537;--line:#34465a;--text:#e9f2fc;--muted:#aabacc;--blue:#48b7fa;--green:#5dd9ae;--amber:#f0c072}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--text);font:13px/1.45 Segoe UI,Arial;margin:0;padding:17px}header{display:flex;gap:12px;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:12px}h1{font-size:19px;margin:0}h1 strong{color:var(--blue)}.pill{border-radius:14px;border:1px solid #426071;padding:5px 9px;color:#d9eaf9;font-size:11px}.sub{font-size:11px;color:var(--muted);margin-top:5px}.group{margin-top:15px;background:var(--panel);border:1px solid var(--line);padding:14px;border-radius:10px}h2{font-size:13px;margin:0 0 9px}.joint{color:var(--green);font-weight:600;min-height:20px}.muted{color:var(--muted)}label{display:block;font-size:12px;color:var(--muted);margin:10px 0 5px}input,select{display:block;width:100%;background:#0c1727;border:1px solid #536577;border-radius:6px;color:var(--text);padding:9px;font:inherit}.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}button{background:#274861;color:#fff;border:1px solid #3d7494;border-radius:8px;padding:10px 12px;cursor:pointer;font:inherit;font-weight:600}button.primary{background:#047aa9;border-color:#1b9dd0}button:disabled{opacity:.45;cursor:not-allowed}.actions{display:flex;gap:8px;margin-top:15px}.actions button{flex:1}#notice{font-size:12px;color:var(--amber);background:#3a2d1d;border:1px solid #6b5634;padding:10px;border-radius:6px;margin-top:10px;display:none}#notice.visible{display:block}#profileNote{font-size:11px;color:var(--amber);line-height:1.5;margin-top:7px}.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px}.fact{background:#0d1a29;border-radius:6px;padding:8px;text-align:center}.fact strong{color:var(--blue);font-size:17px;display:block}.fact small{color:var(--muted);font-size:10px}footer{font-size:11px;margin-top:14px;color:var(--muted)}
+</style></head>
+<body>
+<header><div><h1><strong>Zilla</strong> Smart Joint</h1><div class="sub">Ручна присадка · v0.2.0</div></div><div class="pill">ТІЛЬКИ РОЗМІТКА</div></header>
+<section class="group"><h2>Поточний стик / Selected joint</h2><div id="joint" class="joint">Наведи курсор на стик і клацни</div><div id="length" class="muted"></div></section>
+<section class="group"><h2>Тип кріплення</h2><label for="profile">Виберіть фурнітуру</label><select id="profile"><option>Завантаження…</option></select><div id="profileNote"></div><div class="split"><label>Кількість на стику<input id="count" type="number" min="1" max="8" value="2" step="1"></label><label>Відступ від кінців, мм<input id="offset" type="number" min="15" max="150" value="50" step="1"></label></div>
+<div class="actions"><button id="preview" onclick="sendPreview()">Оновити прев’ю</button><button class="primary" id="apply" onclick="apply()" disabled>Нанести розмітку</button></div>
+<div class="actions"><button onclick="exportManual()">Експорт цього стику (CSV)</button></div><div id="notice"></div>
+<div class="facts"><div class="fact"><strong id="bores">—</strong><small>Отворів</small></div><div class="fact"><strong id="face">—</strong><small>Пласть</small></div><div class="fact"><strong id="edge">—</strong><small>Торець</small></div></div>
+<div class="actions"><button onclick="reset()">Інший стик</button></div></section>
+<footer>Помаранчеві/червоні хрестики показують центри. Нанесення додає маркери окремою групою; отвори в ДСП фізично не вирізаються. Перевірте матеріал, свердло й профіль кріплення перед виробництвом.</footer>
+<script>
+(function(){'use strict';var fittingCatalog=[];var hasPreview=false;var selected={profile_id:'confirmat_7x50',count:2,offset_mm:50};
+var $=function(id){return document.getElementById(id)};
+function notice(message){$('notice').textContent=String(message);$('notice').className='visible'}
+function current(){return {profile_id:$('profile').value,count:Number($('count').value),offset_mm:Number($('offset').value)}}
+function note(){var obj=fittingCatalog.find(function(p){return p.id===$('profile').value});$('profileNote').textContent=obj?obj.note:'';$('apply').disabled=true;hasPreview=false}
+window.sendPreview=function(){if(!window.sketchup){notice('SketchUp API недоступний');return;}window.sketchup.updateFitting(JSON.stringify(current()))};
+window.apply=function(){if(window.sketchup && hasPreview)window.sketchup.applyManual()};
+window.reset=function(){if(window.sketchup)window.sketchup.resetManual()};
+window.exportManual=function(){if(window.sketchup && hasPreview)window.sketchup.exportManual()};
+window.ZFTManual={receive:function(data){if(data.type==='init'){fittingCatalog=data.catalog||[];selected=data.selected||selected;$('joint').textContent=data.joint?data.joint.name:'Виберіть стик';$('length').textContent=data.joint?'Довжина: '+data.joint.length_mm+' мм':'';var sel=$('profile');sel.textContent='';fittingCatalog.forEach(function(profile){var opt=document.createElement('option');opt.value=profile.id;opt.textContent=profile.label+(profile.kind==='joint'?'':' — потрібен артикул');opt.disabled=profile.kind!=='joint';sel.appendChild(opt)});sel.value=selected.profile_id;$('count').value=selected.count;$('offset').value=selected.offset_mm;note();}
+else if(data.type==='preview'){var plan=data.plan;hasPreview=Boolean(plan&&plan.holes&&plan.holes.length);$('apply').disabled=!hasPreview;$('bores').textContent=plan.holes.length;$('face').textContent=plan.holes.filter(function(h){return h.kind.indexOf('face')===0}).length;$('edge').textContent=plan.holes.filter(function(h){return h.kind.indexOf('edge')===0}).length;notice('Готово до перевірки. '+(plan.warning||''));}
+else if(data.type==='error'){hasPreview=false;$('apply').disabled=true;notice('Помилка: '+data.message);}
+else if(data.type==='message'){notice(data.message);}}
+};$('profile').addEventListener('change',function(){note();sendPreview()});$('count').addEventListener('change',sendPreview);$('offset').addEventListener('change',sendPreview);if(window.sketchup)window.sketchup.getManual();})();
+</script></body></html>
