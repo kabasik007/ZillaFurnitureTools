@@ -59,3 +59,12 @@ Select drawer box and decorative front separately. Offer user choices: fixed wit
 - Test parts against manufacturer's dimensions and manufacturing preview; Ruby unit tests plus on-device SketchUp integration and reversible model edit test.
 
 Related GitHub issues: #2, #3, #4, #5, #6, #7. Draft PR: #1.
+
+## Existing products / UX to benchmark
+
+- **ViyarPro:** select fastener and automatically compute drill diameters/depths; imports SketchUp and supports DXF/CSV workflows. Source: https://viyar.ua/articles/viyarpro-mebli-innovatsiyniy-onlayn-konstruktor-dlya-vashoi-roboti/ and https://viyar.ua/ua/articles/chto_takoe_prisadka/
+- **BAZIS Mebelshchik:** built-in automatic fastener assignment at an individual butt joint or across a panel, including cabinet and drawer slide holes. UX reference: https://bazis-center.ru/system/mebelschik ; full user guide chapter 29 on fastener layout.
+- **Blum Cabinet Configurator:** browser-based hardware catalog, collision check, CAD and BXF manufacturing data and drilling positions. Product-specific inspiration for verified profiles. https://www.blum.com/eu/en/services/planning-construction-product-selection/cabinet-configurator/
+- **PolyBoard:** parametric hardware libraries, cabinet drilling/groove tooling map and CNC output. https://boole.eu/polyboard.php
+
+Copy *concepts and verified dimensional specifications*, not proprietary code, illustrations, licensed CAD libraries or vendor branding. For each manufacturer picture show official catalog links/thumbnails only where permission is confirmed.
