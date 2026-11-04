@@ -3,6 +3,8 @@ require 'sketchup.rb'
 require 'json'
 require 'csv'
 require_relative 'planner'
+require_relative 'hardware'
+require_relative 'smart_joint'
 
 module ZillaFurnitureTools
   module Main
@@ -20,6 +22,7 @@ module ZillaFurnitureTools
           style: UI::HtmlDialog::STYLE_DIALOG
         )
         @dialog.set_file(File.join(__dir__, 'ui.html'))
+        @dialog.add_action_callback('smartJoint') { |_ctx| start_smart_joint }
         @dialog.add_action_callback('scan') { |_ctx, json| render_scan(json) }
         @dialog.add_action_callback('guides') { |_ctx, json| create_guides(json) }
         @dialog.add_action_callback('export') { |_ctx, json| export_plan(json) }
@@ -28,6 +31,18 @@ module ZillaFurnitureTools
         @dialog.add_action_callback('markExclude') { |_ctx| mark_selected('exclude') }
       end
       @dialog.show
+    end
+
+    def start_smart_joint
+      parts, skipped = collect_selected
+      if parts.length < 2
+        raise 'At least two suitable cabinet panels are needed for Smart Joint'
+      end
+      model = Sketchup.active_model
+      model.select_tool(SmartJointTool.new(parts))
+      dispatch(type: 'message', message: "Smart Joint увімкнено. Наведіть мишу на стик та клацніть. Пропущено: #{skipped.length}.")
+    rescue StandardError => e
+      report_error(e)
     end
 
     def dispatch(payload)
@@ -240,7 +255,9 @@ module ZillaFurnitureTools
     end
 
     unless defined?(@menu_installed) && @menu_installed
-      UI.menu('Plugins').add_item('Zilla Furniture Tools — drill planner') { show_dialog }
+      menu = UI.menu('Plugins')
+      menu.add_item('Zilla Furniture Tools — drill planner') { show_dialog }
+      menu.add_item('Zilla Furniture Tools — Smart Joint') { start_smart_joint }
       @menu_installed = true
     end
   end
