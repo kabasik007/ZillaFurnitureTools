@@ -1,6 +1,6 @@
 # Zilla Furniture Tools
 
-**SketchUp furniture manufacturing assistant — v0.1.0 prototype.**
+**SketchUp furniture manufacturing assistant — v0.2.0 prototype.**
 
 This first version scans an existing cabinet model, detects conservative 90° butt joints between rectangular sheet-material parts, places **non-cutting confirmat drilling guides** and exports a UTF-8 CSV with drilling coordinates and candidate front-edge PVC banding.
 
@@ -8,8 +8,29 @@ This first version scans an existing cabinet model, detects conservative 90° bu
 
 1. Download the source from GitHub or the release ZIP.
 2. If using source, run `python tools/build_rbz.py` (Python 3, no packages required).
-3. In SketchUp go to **Window → Extension Manager → Install Extension**, choose `dist/ZillaFurnitureTools-v0.1.0.rbz`.
+3. In SketchUp go to **Window → Extension Manager → Install Extension**, choose `dist/ZillaFurnitureTools-v0.2.0.rbz`.
 4. Open **Extensions → Zilla Furniture Tools — drill planner** (in some versions this menu is called Plugins).
+
+
+## NEW in v0.2 — Manual Smart Joint
+
+The tool now has **two modes**:
+
+**Auto planner**: select a cabinet assembly -> Extensions > Zilla Furniture Tools — drill planner -> Analyze / Apply guide markers / Export CSV.
+
+**Smart Joint (manual)**: select your cabinet assembly -> Extensions > Zilla Furniture Tools — Smart Joint. Hover the pointer close to a highlighted perpendicular face-to-edge seam and click. A side dialog opens with a **fastener selector**, **fastener count (1–8)**, **offset from both seam ends** and a preview of face/edge drill centers. Press **Нанести розмітку** to add one undoable, separate group of construction markers, or export a **joint-only UTF-8 CSV**. Esc cancels a joint; click **Інший стик** to continue. Ctrl+Z undoes an applied marker operation.
+
+The new fitting library includes provisional **confirmat 7×50** and **wooden dowel Ø6/Ø8×30 with glue**. Dowel bores are **blind and begin at the mating face**, not the outside of the carcass. Exact nominal hole diameters, depths and fit still require hardware-specific verification. Hardware catalog also lists **drawer-front adjusters**, **side-mounted** and **concealed slides**, **caster/foot plates** but these are **disabled for drilling** until the manufacturer/SKU and its hole pattern are verified.
+
+### Support boundaries (important)
+
+- This is an **early SketchUp beta**, still pending hands-on Windows SketchUp validation. Ruby tests and RBZ packaging can run outside SketchUp but do not verify picking/drawing callbacks.
+- Works only for separate simple **rectangular, orthogonal groups/components**, with a real shared butt seam. The automated and manual modes deliberately skip complicated, angled or non-cuboid objects.
+- Markers and preview are **not actual cuts** in the board, nor a DXF/CNC machining program. CSV XYZ uses active model coordinates and bounding-box-local coordinates; orientation must be checked by the shop.
+- The preliminary dowel depths are illustrative and may be insufficient for the dowel length: obtain a specific manufacturer drawing before production.
+- The drawer-front, slides, edging and wheel-specific tools remain planned tasks; no drilling guessed from unknown hardware.
+
+Run tests: `ruby test/test_planner.rb && ruby test/test_hardware.rb`. Build package: `python3 tools/build_rbz.py`. Current package: `dist/ZillaFurnitureTools-v0.2.0.rbz`.
 
 ## Working with a cabinet model
 
@@ -32,7 +53,7 @@ This first version scans an existing cabinet model, detects conservative 90° bu
 
 ### Safety and limitations
 
-**No actual holes are cut into part solids.** This is intentional for v0.1. A marker is a visible circle and construction point, not CNC geometry. OpenCutList does not automatically pick up the marker as a real hole in the panel.
+**No actual holes are cut into part solids.** This is intentional for v0.2. A marker is a visible circle and construction point, not CNC geometry. OpenCutList does not automatically pick up the marker as a real hole in the panel.
 
 Default adjustable **confirmat 7×50 mm profile**: face clearance Ø7 mm, edge pilot Ø5 mm, pilot up to 30 mm, two screws at 50 mm from seam ends. These are assumptions for the prototype, **not a certified drilling prescription**; verify screw and bit specifications, head/countersink, panel quality, joint positions, chipboard thickness, clearance and load with the hardware supplier and fabricator.
 
