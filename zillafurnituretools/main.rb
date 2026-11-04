@@ -258,11 +258,14 @@ module ZillaFurnitureTools
       front = parts.find { |p| p[:name].match?(/front_facade|фасад/i) }
       wall = parts.find { |p| p[:name].match?(/drawer_front_wall|передня.*шухляд/i) }
       raise 'Select the drawer facade and front wall, or their parent assembly' unless front && wall
-      values = UI.inputbox(['Fasteners (2–4)', 'Offset from both ends, mm', 'Guide diameter, mm', 'Facade blind depth, mm'],
-                           [2, 80, 5, 12], 'ZFT — drawer front, GUIDES ONLY')
+      values = UI.inputbox(['Fasteners (2–4)', 'Offset from both ends, mm',
+                            'Wall through-hole diameter, mm', 'Facade blind pilot diameter, mm',
+                            'Facade blind depth, mm'],
+                           [2, 80, 5, 5, 12], 'ZFT — drawer front, GUIDES ONLY')
       return unless values
       plan = Mounting.drawer_front(front, wall, count: values[0], offset_mm: values[1],
-                                  diameter_mm: values[2], front_depth_mm: values[3])
+                                  wall_clearance_diameter_mm: values[2],
+                                  front_pilot_diameter_mm: values[3], front_depth_mm: values[4])
       add_mount_guides(plan)
     rescue StandardError => e
       report_error(e)

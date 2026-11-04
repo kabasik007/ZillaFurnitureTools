@@ -9,17 +9,20 @@ module ZillaFurnitureTools
   module Mounting
     module_function
 
-    def drawer_front(front, wall, count: 2, offset_mm: 80, diameter_mm: 5, front_depth_mm: 12, tolerance_mm: 0.8)
+    def drawer_front(front, wall, count: 2, offset_mm: 80, wall_clearance_diameter_mm: 5,
+                     front_pilot_diameter_mm: 5, front_depth_mm: 12, tolerance_mm: 0.8)
       axis = front[:thickness_axis]
       raise ArgumentError, 'Facade and front wall must be parallel panels' unless axis == wall[:thickness_axis]
       raise ArgumentError, 'Facade and wall must be distinct parts' if front[:id] == wall[:id]
       count = Integer(count)
       offset = Float(offset_mm)
-      diameter = Float(diameter_mm)
+      clearance_diameter = Float(wall_clearance_diameter_mm)
+      pilot_diameter = Float(front_pilot_diameter_mm)
       depth = Float(front_depth_mm)
       raise ArgumentError, 'Use 2–4 facade fixings' unless count.between?(2, 4)
       raise ArgumentError, 'Offset must be at least 30 mm' unless offset >= 30
-      raise ArgumentError, 'Guide diameter must be 4–10 mm' unless diameter.between?(4, 10)
+      raise ArgumentError, 'Wall clearance diameter must be 3–15 mm' unless clearance_diameter.between?(3, 15)
+      raise ArgumentError, 'Facade pilot diameter must be 2–10 mm' unless pilot_diameter.between?(2, 10)
       raise ArgumentError, 'Blind depth leaves less than 3 mm of facade' unless depth > 0 && depth <= front[:thickness_mm] - 3
       contact, toward_front = if Planner.close?(front[:max][axis], wall[:min][axis], tolerance_mm)
                                 [front[:max][axis], -1]
@@ -43,8 +46,8 @@ module ZillaFurnitureTools
         inside[axis] = toward_front == -1 ? wall[:max][axis] : wall[:min][axis]
         mating = center.dup
         mating[axis] = contact
-        holes << Planner.hole('DRAWER_FRONT', wall, 'wall_face_through_GUIDE', inside, axis, toward_front, diameter, wall[:thickness_mm])
-        holes << Planner.hole('DRAWER_FRONT', front, 'facade_blind_GUIDE', mating, axis, toward_front, diameter, depth)
+        holes << Planner.hole('DRAWER_FRONT', wall, 'wall_face_through_GUIDE', inside, axis, toward_front, clearance_diameter, wall[:thickness_mm])
+        holes << Planner.hole('DRAWER_FRONT', front, 'facade_blind_GUIDE', mating, axis, toward_front, pilot_diameter, depth)
       end
       { kind: 'drawer_front', profile_id: 'manual_facade_mount', front_id: front[:id], wall_id: wall[:id],
         count: count, holes: holes,

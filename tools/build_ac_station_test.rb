@@ -38,7 +38,8 @@ raise 'Missing board' unless (expected_names - by_name.keys).empty?
 
 front_plan = ZillaFurnitureTools::Mounting.drawer_front(
   by_name.fetch('Front_Facade'), by_name.fetch('Drawer_Front_Wall'),
-  count: 2, offset_mm: 80, diameter_mm: 5, front_depth_mm: 12)
+  count: 2, offset_mm: 80, wall_clearance_diameter_mm: 5,
+  front_pilot_diameter_mm: 5, front_depth_mm: 12)
 slide_plans = %w[Left Right].map do |side|
   ZillaFurnitureTools::Mounting.slide_pair(
     by_name.fetch("#{side}_Side"), by_name.fetch("Drawer_#{side}"),

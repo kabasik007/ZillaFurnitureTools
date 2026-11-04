@@ -1,11 +1,11 @@
 # Zilla Furniture Tools
 
-SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.4.0**.
+SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.4.1**.
 
 ## Install
 
 1. Run `python tools/build_rbz.py` from this repository.
-2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.4.0.rbz`.
+2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.4.1.rbz`.
 3. Select the cabinet assembly or individual panel components. Open the **Extensions** menu (called **Plugins** in the Ruby API).
 
 ## Commands

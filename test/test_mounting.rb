@@ -24,6 +24,15 @@ class TestMounting < Minitest::Test
     assert_raises(ArgumentError) { ZillaFurnitureTools::Mounting.drawer_front(front, wall, front_depth_mm: 16) }
   end
 
+  def test_facade_uses_independent_clearance_and_pilot_diameters
+    front = part('Front_Facade', [0, -18, 0], [500, 0, 205], 1)
+    wall = part('Drawer_Front_Wall', [18, 0, 50], [482, 18, 150], 1)
+    result = ZillaFurnitureTools::Mounting.drawer_front(front, wall,
+      wall_clearance_diameter_mm: 6, front_pilot_diameter_mm: 3, front_depth_mm: 10)
+    assert_equal [6.0, 3.0], result[:holes].first(2).map { |hole| hole[:diameter_mm] }
+    assert_equal [18.0, 10.0], result[:holes].first(2).map { |hole| hole[:depth_mm] }
+  end
+
   def test_slide_guides_use_separate_cabinet_and_drawer_datums
     cabinet = part('Left_Side', [0, 0, 0], [18, 500, 200], 0)
     drawer = part('Drawer_Left', [30.5, 0, 50], [48.5, 400, 157], 0)
