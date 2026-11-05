@@ -1,11 +1,13 @@
 # Zilla Furniture Tools
 
-SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.4.1**.
+SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.5.0**.
 
 ## Install
 
 1. Run `python tools/build_rbz.py` from this repository.
-2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.4.1.rbz`.
+2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.5.0.rbz`.
+
+`Drawer box: 4 corner joints` plans all four joints of the named 18 mm drawer walls: normally 8 confirmats / 16 holes. Select the drawer assembly first. The bottom, facade and runners are separate connections. Smart Joint now also scans drawer components for manual joint placement. These remain provisional drilling profiles, not validated Viyar CNC programs.
 3. Select the cabinet assembly or individual panel components. Open the **Extensions** menu (called **Plugins** in the Ruby API).
 
 ## Commands

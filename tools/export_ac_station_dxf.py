@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import json
 import csv
+import sys
 from pathlib import Path
 
 ROOT = Path('M:/projects/furniture/AC-Station')
-OUT = ROOT / 'exports' / 'viyar_test_20261104'
+OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'exports' / 'viyar_test_20261104'
 manifest = json.loads((OUT / 'drilling_manifest.json').read_text(encoding='utf-8'))
 assert manifest['status'] == 'TEST_ONLY_NOT_APPROVED_FOR_ORDER'
 DXF_DIR = OUT / 'dxf_drawings'

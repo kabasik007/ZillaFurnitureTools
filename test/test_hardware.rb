@@ -22,6 +22,19 @@ class TestHardware < Minitest::Test
     assert_equal [18.0, 350.0, 9.0], result[:holes][3][:xyz_mm]
   end
 
+  def test_drawer_box_connects_four_corners_and_rejects_missing_wall
+    walls = [panel('Drawer_Left', [0,0,0], [18,400,107], 0),
+             panel('Drawer_Right', [482,0,0], [500,400,107], 0),
+             panel('Drawer_Front_Wall', [18,0,0], [482,18,107], 1),
+             panel('Drawer_Rear_Wall', [18,382,0], [482,400,107], 1)]
+    plan = ZillaFurnitureTools::Hardware.drawer_box(walls)
+    assert_equal 8, plan[:count]
+    assert_equal 16, plan[:holes].size
+    assert_equal 4, plan[:joints].size
+    assert_equal [25.0,82.0], plan[:holes].map { |h| h[:xyz_mm][2] }.uniq.sort
+    assert_raises(ArgumentError) { ZillaFurnitureTools::Hardware.drawer_box(walls.take(3)) }
+  end
+
   def test_dowel_boards_have_matching_centres_and_opposite_face_direction
     result = ZillaFurnitureTools::Hardware.plan_pair(*parts, profile_id: 'dowel_8x30')
     assert_equal 4, result[:holes].length

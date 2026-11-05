@@ -37,7 +37,7 @@ module ZillaFurnitureTools
     end
 
     def start_smart_joint
-      parts, skipped = collect_selected
+      parts, skipped = collect_selected(include_drawer: true)
       if parts.length < 2
         raise 'At least two suitable cabinet panels are needed for Smart Joint'
       end
@@ -253,6 +253,23 @@ module ZillaFurnitureTools
       report_error(e)
     end
 
+    def drawer_box_guides
+      parts, = collect_selected(include_drawer: true)
+      existing = Sketchup.active_model.active_entities.grep(Sketchup::Group).any? do |group|
+        raw = group.get_attribute(ATTRIBUTE, 'plan_json')
+        raw && JSON.parse(raw)['kind'] == 'drawer_box'
+      end
+      raise 'Drawer box guides already exist in this editing context' if existing
+      values = UI.inputbox(['Confirmats per corner', 'Offset from top/bottom, mm'],
+                           [2, 25], 'ZFT — four drawer wall joints')
+      return unless values
+      plan = Hardware.drawer_box(parts, count: values[0], offset_mm: values[1])
+      add_mount_guides(plan)
+    rescue StandardError => e
+      report_error(e)
+      UI.messagebox("ZFT: #{e.message}")
+    end
+
     def drawer_front_guides
       parts, = collect_selected(include_drawer: true)
       front = parts.find { |p| p[:name].match?(/front_facade|фасад/i) }
@@ -330,7 +347,7 @@ module ZillaFurnitureTools
       model = Sketchup.active_model
       groups = model.active_entities.grep(Sketchup::Group).select do |group|
         group.get_attribute(ATTRIBUTE, 'generated', false) &&
-          group.name.start_with?('ZFT drawer_front', 'ZFT slide_pair')
+          group.name.start_with?('ZFT drawer_front', 'ZFT slide_pair', 'ZFT drawer_box')
       end
       raise 'No drawer-front or slide guide groups in the active editing context' if groups.empty?
       path = UI.savepanel('Export mounting guides CSV', nil, 'zilla_mounting_guides_REVIEW.csv')
@@ -445,6 +462,7 @@ module ZillaFurnitureTools
       menu.add_item('Zilla Furniture Tools — drill planner') { show_dialog }
       menu.add_item('Zilla Furniture Tools — Smart Joint') { start_smart_joint }
       menu.add_item('Zilla Furniture Tools — Drawer front guides') { drawer_front_guides }
+      menu.add_item('Zilla Furniture Tools — Drawer box: 4 corner joints') { drawer_box_guides }
       menu.add_item('Zilla Furniture Tools — Slide guides') { slide_guides }
       menu.add_item('Zilla Furniture Tools — Export mounting guides CSV') { export_mount_guides_csv }
       menu.add_item('Zilla Furniture Tools — Apply OpenCutList edge plan CSV') { apply_edge_plan_dialog }

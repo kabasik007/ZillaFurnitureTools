@@ -53,6 +53,25 @@ module ZillaFurnitureTools
       PROFILES.map { |key, value| { id: key }.merge(value) }
     end
 
+    # Explicit four-wall drawer recipe, not an all-contact auto fastener guess.
+    def drawer_box(parts, count: 2, offset_mm: 25)
+      names = %w[Drawer_Left Drawer_Right Drawer_Front_Wall Drawer_Rear_Wall]
+      walls = names.map do |name|
+        matches = parts.select { |p| p[:name] == name }
+        raise ArgumentError, "Expected exactly one #{name}" unless matches.length == 1
+        part = matches.first
+        raise ArgumentError, "#{name}: expected vertical 18 mm panel" unless
+          [0, 1].include?(part[:thickness_axis]) && (part[:thickness_mm] - 18).abs < 0.1
+        part
+      end
+      joints = walls.first(2).product(walls.last(2)).map do |side, wall|
+        plan_pair(side, wall, count: count, offset_mm: offset_mm)
+      end
+      { kind: 'drawer_box', profile_id: 'confirmat_7x50', joints: joints,
+        count: joints.sum { |j| j[:count] }, holes: joints.flat_map { |j| j[:holes] },
+        warning: 'Four wall joints only. Verify countersinks below runner rails. Bottom, facade and slides use separate fittings.' }
+    end
+
     def plan_pair(a, b, profile_id: 'confirmat_7x50', count: 2, offset_mm: 50.0, tolerance_mm: 0.8)
       profile = PROFILES.fetch(profile_id) { raise ArgumentError, 'Unknown fitting profile' }
       raise ArgumentError, 'This fitting needs manufacturer/SKU drawing before drilling' unless profile[:kind] == 'joint'
