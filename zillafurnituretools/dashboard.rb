@@ -79,7 +79,12 @@ module ZillaFurnitureTools
         raise "Невідома крайка: #{name}" unless codes.all? { |c| [0,1,2].include?(c) }
         thickness={0=>0.0,1=>0.5,2=>2.0}
         t,bottom,l,r=codes.map { |c| thickness.fetch(c) }
-        rows << [(dims[long]-l-r).round(3),(dims[short]-t-bottom).round(3),1,*codes,'+',name,1]
+        saw_long=(dims[long]-l-r).round(3)
+        saw_short=(dims[short]-t-bottom).round(3)
+        if saw_long-l-r < 50 || saw_short-t-bottom < 50
+          raise "Замала деталь для Viyar після крайки: #{name}. Збільшіть готовий розмір або змініть карту крайок."
+        end
+        rows << [saw_long,saw_short,1,*codes,'+',name,1]
       end
       raise 'Немає деталей із призначеною картою крайок. Виділіть збірку та призначте крайку.' if rows.empty?
       rows
@@ -132,7 +137,7 @@ module ZillaFurnitureTools
       target=UI.savepanel('Пакет CSV для ViyarPro',File.dirname(m.path),'Viyar_CSV_package')
       return unless target
       result=ViyarExport.export_package(m,roots,target,abf:false)
-      message("Пакет CSV: #{target}. Деталей: #{result[:parts_with_edge_plan]}; фізичних отворів у контрольному списку: #{result[:recorded_physical_holes]}. CSV імпортує розкрій і крайку, не свердління.")
+      message("Пакет: #{target}. CSV: #{result[:parts_with_edge_plan]} деталей із крайкою. Один пробний DXF: #{result[:trial_dxf][:face_holes]} площинних отворів; #{result[:trial_dxf][:edge_holes_review_only]} торцевих тільки у відомості. Тестуйте DXF в окремому проєкті Viyar.")
     end
 
     # SketchUp's native DXF exporter also exports hidden instances. Remove them

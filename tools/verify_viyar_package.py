@@ -24,6 +24,11 @@ def verify(folder: Path) -> str:
             raise ValueError(f'Invalid part dimensions/columns: {row}')
         if not all(row[i] in {'0', '1', '2'} for i in range(3, 7)):
             raise ValueError(f'Invalid edge code: {row}')
+        edge_mm = (0.0, 0.5, 2.0)
+        effective_length = float(row[0]) - edge_mm[int(row[5])] - edge_mm[int(row[6])]
+        effective_width = float(row[1]) - edge_mm[int(row[3])] - edge_mm[int(row[4])]
+        if min(effective_length, effective_width) < 50:
+            raise ValueError(f'Viyar minimum 50 mm after edge allowance: {row[8]}')
         names.append(row[8])
     if any(count > 1 for count in Counter(names).values()):
         raise ValueError('Repeated part names need manual identity review')
@@ -38,6 +43,17 @@ def verify(folder: Path) -> str:
             raise ValueError(f'Invalid hole: {hole}')
     if manifest['format'] == 'Viyar_saw_CSV_only' and '02_ABF_flatten_viyar.dxf' in manifest['files']:
         raise ValueError('CSV-only package mislabeled as ABF DXF')
+    if '05_batch_face_drilling_TRIAL.dxf' in manifest['files']:
+        dxf = (folder / '05_batch_face_drilling_TRIAL.dxf').read_text(encoding='utf-8').splitlines()
+        if len(dxf) % 2:
+            raise ValueError('Odd DXF group-code/value line count')
+        pairs = list(zip(dxf[::2], dxf[1::2]))
+        entities = Counter(value for code, value in pairs if code == '0')
+        trial = manifest['trial_dxf']
+        if entities['LWPOLYLINE'] != trial['parts'] or entities['CIRCLE'] != trial['face_holes']:
+            raise ValueError('DXF contour/hole count differs from manifest')
+        if ('9', '$INSUNITS') not in pairs or ('70', '4') not in pairs or pairs[-1] != ('0', 'EOF'):
+            raise ValueError('DXF header, millimetre unit, or terminator missing')
     return f'PASS: {len(parts)} parts, {len(holes)} recorded holes, {len(manifest["files"])} files'
 
 

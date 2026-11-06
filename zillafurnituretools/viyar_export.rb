@@ -70,6 +70,62 @@ module ZillaFurnitureTools
       path
     end
 
+    # One inspectable 2D DXF for a batch import trial. Only face holes can be
+    # represented by circles in this view; edge holes stay in the review CSV.
+    # The Viyar parser's blind-hole and edge-hole layer grammar is unverified.
+    def write_trial_batch_dxf(roots, path)
+      parts = PartInventory.records(roots).select { |p| p[:instance].get_attribute(Main::ATTRIBUTE, 'edge_plan') }
+      raise 'Немає деталей для пакетного DXF.' if parts.empty?
+      entities = []
+      layers = %w[ZFT_OUTLINE ZFT_INFO DEPTHF ZFT_BLIND_REVIEW]
+      x = y = row_height = 0.0
+      face_holes = edge_holes = 0
+      parts.each_with_index do |part, index|
+        raise "Масштабована деталь: #{part[:instance].name}" unless part[:rigid]
+        dims = part[:local_dimensions_mm]
+        thin = (0..2).min_by { |i| dims[i] }
+        long, short = ([0, 1, 2] - [thin]).sort_by { |i| -dims[i] }
+        length, width = dims.values_at(long, short)
+        if x > 0 && x + length > 2000
+          x = 0.0
+          y += row_height + 70
+          row_height = 0.0
+        end
+        row_height = [row_height, width].max
+        points = [[x, y], [x + length, y], [x + length, y + width], [x, y + width]]
+        entities.concat([[0, 'LWPOLYLINE'], [8, 'ZFT_OUTLINE'], [90, 4], [70, 1]])
+        points.each { |px, py| entities.concat([[10, px.round(3)], [20, py.round(3)]]) }
+        label = "#{index + 1} #{part[:instance].name} #{length.round(1)}x#{width.round(1)}x#{dims[thin].round(1)}"
+        entities.concat([[0, 'TEXT'], [8, 'ZFT_INFO'], [10, x], [20, y + width + 10],
+                         [30, 0], [40, 5], [1, label.encode('ASCII', invalid: :replace, undef: :replace, replace: '_')]])
+        JSON.parse(part[:instance].get_attribute(Main::ATTRIBUTE, 'actual_holes_json', '[]')).each do |hole|
+          local = hole.fetch('local_bbox_mm')
+          direction = Geom::Vector3d.new(*hole.fetch('direction')).transform(part[:transform].inverse)
+          axis = (0..2).max_by { |i| direction.to_a[i].abs }
+          if axis == thin
+            through = (Float(hole.fetch('depth_mm')) - dims[thin]).abs < 0.05
+            layer = through ? 'DEPTHF' : 'ZFT_BLIND_REVIEW'
+            entities.concat([[0, 'CIRCLE'], [8, layer], [10, (x + local[long]).round(3)],
+                             [20, (y + local[short]).round(3)], [30, 0],
+                             [40, (Float(hole.fetch('diameter_mm')) / 2).round(3)]])
+            face_holes += 1
+          else
+            edge_holes += 1
+          end
+        end
+        x += length + 60
+      end
+      output = [[0, 'SECTION'], [2, 'HEADER'], [9, '$ACADVER'], [1, 'AC1021'],
+                [9, '$INSUNITS'], [70, 4], [0, 'ENDSEC'], [0, 'SECTION'], [2, 'TABLES'],
+                [0, 'TABLE'], [2, 'LAYER'], [70, layers.length]]
+      layers.each { |layer| output.concat([[0, 'LAYER'], [2, layer], [70, 0], [62, 7], [6, 'CONTINUOUS']]) }
+      output.concat([[0, 'ENDTAB'], [0, 'ENDSEC'], [0, 'SECTION'], [2, 'ENTITIES']])
+      output.concat(entities)
+      output.concat([[0, 'ENDSEC'], [0, 'EOF']])
+      File.write(path, output.map { |code, value| "#{code}\n#{value}\n" }.join, mode: 'w:UTF-8')
+      {parts: parts.length, face_holes: face_holes, edge_holes_review_only: edge_holes}
+    end
+
     def export_package(model, roots, directory, abf: false)
       audit = preflight(model, roots, require_flatten: abf)
       raise 'Папка експорту вже існує.' if File.exist?(directory)
@@ -77,6 +133,7 @@ module ZillaFurnitureTools
       begin
         Dashboard.write_csv(File.join(directory, '01_parts_edges_viyar.csv'), roots)
         write_flatten_dxf(model, File.join(directory, '02_ABF_flatten_viyar.dxf')) if abf
+        trial = write_trial_batch_dxf(roots, File.join(directory, '05_batch_face_drilling_TRIAL.dxf'))
         CSV.open(File.join(directory, '03_drilling_review.csv'), 'wb', col_sep: ';', encoding: 'UTF-8') do |csv|
           csv << %w[instance_path part_name operation x_mm y_mm z_mm dir_x dir_y dir_z diameter_mm depth_mm]
           audit[:holes].each do |hole|
@@ -95,12 +152,14 @@ module ZillaFurnitureTools
           parts_with_edge_plan: audit[:edged].length,
           recorded_physical_holes: audit[:holes].length,
           abf_flatten_groups: audit[:flatten_count],
+          trial_dxf: trial,
           material_selection: project_materials(model),
           files: ['01_parts_edges_viyar.csv', ('02_ABF_flatten_viyar.dxf' if abf),
-                  '03_drilling_review.csv', '04_hardware_review.csv'].compact,
+                  '03_drilling_review.csv', '04_hardware_review.csv',
+                  '05_batch_face_drilling_TRIAL.dxf'].compact,
           hardware_rows: hardware.length,
           note: abf ? 'Hardware and drilling CSV are review sheets, not ViyarPro import files. Verify every operation after DXF import.' :
-            'Only parts and edge CSV is a Viyar import candidate. Drilling and hardware CSV are review sheets and are not imported as operations.'
+            'CSV is a Viyar saw import candidate. Batch DXF is a separate trial in a new test project, not a validated production import. Edge holes and blind-hole depths are review only.'
         }
         File.write(File.join(directory, 'manifest.json'), JSON.pretty_generate(manifest), mode: 'w:UTF-8')
         manifest
