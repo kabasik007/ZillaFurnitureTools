@@ -8,6 +8,7 @@ require_relative 'smart_joint'
 require_relative 'mounting'
 require_relative 'manufacturing'
 require_relative 'part_inventory'
+require_relative 'viyar_export'
 require_relative 'dashboard'
 
 module ZillaFurnitureTools

@@ -1,6 +1,10 @@
 # Zilla Furniture Tools
 
-SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.6.1**.
+SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.7.0**.
+
+Version 0.7.0 adds two Viyar package commands. **Пакет CSV для розкрою Viyar** exports the parts and edge CSV, drilling and hardware review sheets, and a material manifest without requiring ABF. **Пакет DXF з ABF-розкладки** additionally exports an existing `ABF_Flatten` layout with the same flatten-only AutoCAD 2007 options as Viyar's `dxf2viyarpro_v1.0.9` extension. The latter blocks missing flatten, missing physical holes, and technical review scenes. **ABF must create the flatten first; Zilla does not convert its own 3D DXF into a Viyar manufacturing project.** The drilling and hardware CSVs are review sheets, not Viyar import files. Verify every accepted operation in a test ViyarPro import before ordering.
+
+A live CSV package from the selected AC Station model is at [AC Station test package](../../AC-Station/exports/viyar_csv_package_20261106/manifest.json): 15 edged parts, 42 recorded physical holes, and two hardware entries. The caster article is still missing; the slide article and mounting must be checked against its supplier drawing. Only `01_parts_edges_viyar.csv` is an import candidate. Material codes live in `manifest.json` because Viyar's parts CSV import uses material selection in the receiving project.
 
 Version 0.6.1 adds an instance-aware part inventory for CSV and drilling review. Repeated names, nested copies and arbitrary rotation now preserve each instance's local board dimensions in those exports. The joint planner remains limited to panels aligned with model axes; it refuses other orientations until a local-frame joint engine is validated. See [initial GAVA/Zilla audit](docs/INITIAL_AUDIT_GAVA_UA.md) and [Viyar format research](docs/VIYAR_FORMAT_RESEARCH.md).
 
@@ -13,7 +17,7 @@ The new CSV export writes 15 assigned AC Station LDSP panels in the Viyar text-i
 ## Install
 
 1. Run `python tools/build_rbz.py` from this repository.
-2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.6.1.rbz`. Restart SketchUp after upgrading to replace the old separate menu entries.
+2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.7.0.rbz`. Restart SketchUp after upgrading to replace the old separate menu entries.
 
 `Drawer box: 4 corner joints` plans all four joints of the named 18 mm drawer walls: normally 8 confirmats / 16 holes. Select the drawer assembly first. The bottom, facade and runners are separate connections. Smart Joint now also scans drawer components for manual joint placement. These remain provisional drilling profiles, not validated Viyar CNC programs.
 3. Select the cabinet assembly or individual panel components. Open the **Extensions** menu (called **Plugins** in the Ruby API).

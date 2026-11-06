@@ -36,6 +36,8 @@ module ZillaFurnitureTools
       when 'planner' then Main.show_dialog
       when 'csv' then export_csv
       when 'dxf' then export_dxf
+      when 'viyar' then export_viyar_package
+      when 'viyar_csv' then export_viyar_csv_package
       when 'xray'
         m.rendering_options['ModelTransparency']=!m.rendering_options['ModelTransparency']
         message(m.rendering_options['ModelTransparency'] ? 'X-Ray увімкнено' : 'X-Ray вимкнено')
@@ -110,6 +112,27 @@ module ZillaFurnitureTools
       ok=write_dxf(path)
       raise 'Експортер SketchUp не створив DXF.' unless ok
       message('3D DXF збережено. Це геометрія збірки; перевірте одиниці та масштаб при імпорті. Операції присадки не передаються цим експортером.')
+    end
+
+    def export_viyar_package
+      m=Sketchup.active_model
+      roots=m.selection.grep(Sketchup::Group)+m.selection.grep(Sketchup::ComponentInstance)
+      ViyarExport.preflight(m,roots)
+      target=UI.savepanel('Пакет ABF DXF для ViyarPro',File.dirname(m.path),'Viyar_ABF_package')
+      return unless target
+      target=target.sub(/\.zip\z/i,'')
+      result=ViyarExport.export_package(m,roots,target,abf:true)
+      message("Пакет: #{target}. Деталей із крайкою: #{result[:parts_with_edge_plan]}, фізичних отворів: #{result[:recorded_physical_holes]}. Перевірте імпорт DXF і кожну операцію у ViyarPro.")
+    end
+
+    def export_viyar_csv_package
+      m=Sketchup.active_model
+      roots=m.selection.grep(Sketchup::Group)+m.selection.grep(Sketchup::ComponentInstance)
+      ViyarExport.preflight(m,roots,require_flatten:false)
+      target=UI.savepanel('Пакет CSV для ViyarPro',File.dirname(m.path),'Viyar_CSV_package')
+      return unless target
+      result=ViyarExport.export_package(m,roots,target,abf:false)
+      message("Пакет CSV: #{target}. Деталей: #{result[:parts_with_edge_plan]}; фізичних отворів у контрольному списку: #{result[:recorded_physical_holes]}. CSV імпортує розкрій і крайку, не свердління.")
     end
 
     # SketchUp's native DXF exporter also exports hidden instances. Remove them
