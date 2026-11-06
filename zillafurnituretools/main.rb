@@ -7,6 +7,7 @@ require_relative 'hardware'
 require_relative 'smart_joint'
 require_relative 'mounting'
 require_relative 'manufacturing'
+require_relative 'part_inventory'
 require_relative 'dashboard'
 
 module ZillaFurnitureTools
@@ -156,7 +157,7 @@ module ZillaFurnitureTools
 
     def reject_existing_holes!(plan)
       roots=Sketchup.active_model.entities.grep(Sketchup::Group)+Sketchup.active_model.entities.grep(Sketchup::ComponentInstance)
-      recorded=leaf_instances(roots).values.flat_map { |e,_| JSON.parse(e.get_attribute(ATTRIBUTE,'actual_holes_json','[]')) }
+      recorded=PartInventory.records(roots).flat_map { |part| JSON.parse(part[:instance].get_attribute(ATTRIBUTE,'actual_holes_json','[]')) }
       duplicate=plan[:holes].find do |h|
         recorded.any? { |r| r['part_name']==h[:part_name] && 3.times.all? { |i| (r['xyz_mm'][i]-h[:xyz_mm][i]).abs<0.1 } }
       end

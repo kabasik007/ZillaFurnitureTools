@@ -1,6 +1,8 @@
 # Zilla Furniture Tools
 
-SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.6.0**.
+SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.6.1**.
+
+Version 0.6.1 adds an instance-aware part inventory for CSV and drilling review. Repeated names, nested copies and arbitrary rotation now preserve each instance's local board dimensions in those exports. The joint planner remains limited to panels aligned with model axes; it refuses other orientations until a local-frame joint engine is validated. See [initial GAVA/Zilla audit](docs/INITIAL_AUDIT_GAVA_UA.md) and [Viyar format research](docs/VIYAR_FORMAT_RESEARCH.md).
 
 Open **Extensions → Zilla Furniture Tools → Панель інструментів**, or click **Z** on the visible Zilla toolbar. One Ukrainian panel brings together perspective/X-Ray, technical scenes, manual joints, drawer corners, edge banding and exports. The toolbar also has shortcuts **+** (joint), **4** (drawer corners), **X** (X-Ray).
 
@@ -11,7 +13,7 @@ The new CSV export writes 15 assigned AC Station LDSP panels in the Viyar text-i
 ## Install
 
 1. Run `python tools/build_rbz.py` from this repository.
-2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.6.0.rbz`. Restart SketchUp after upgrading to replace the old separate menu entries.
+2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.6.1.rbz`. Restart SketchUp after upgrading to replace the old separate menu entries.
 
 `Drawer box: 4 corner joints` plans all four joints of the named 18 mm drawer walls: normally 8 confirmats / 16 holes. Select the drawer assembly first. The bottom, facade and runners are separate connections. Smart Joint now also scans drawer components for manual joint placement. These remain provisional drilling profiles, not validated Viyar CNC programs.
 3. Select the cabinet assembly or individual panel components. Open the **Extensions** menu (called **Plugins** in the Ruby API).

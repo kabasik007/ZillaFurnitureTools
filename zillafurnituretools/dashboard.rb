@@ -59,13 +59,14 @@ module ZillaFurnitureTools
 
     # Edge metadata is stored in each panel's LOCAL axes. Do not mix it with world dimensions.
     def cutting_rows(roots)
-      parts=Main.leaf_instances(roots)
+      parts=PartInventory.records(roots)
       rows=[]
-      parts.each do |name,(instance,parent)|
+      parts.each do |part|
+        instance=part[:instance]
+        name=instance.name
         raw=instance.get_attribute(Main::ATTRIBUTE,'edge_plan')
         next unless raw
-        transform=parent*instance.transformation
-        raise "Масштабована деталь: #{name}" unless Main.rigid_transform?(transform)
+        raise "Масштабована деталь: #{name}" unless part[:rigid]
         b=instance.definition.bounds
         dims=[b.width,b.height,b.depth].map { |v| v.to_f*25.4 }
         thin=(0..2).min_by { |i| dims[i] }
@@ -146,8 +147,8 @@ module ZillaFurnitureTools
       m=Sketchup.active_model
       roots=m.selection.grep(Sketchup::Group)+m.selection.grep(Sketchup::ComponentInstance)
       raise 'Виділіть збірку.' if roots.empty?
-      holes=Main.leaf_instances(roots).values.flat_map do |e,_parent|
-        JSON.parse(e.get_attribute(Main::ATTRIBUTE,'actual_holes_json','[]'))
+      holes=PartInventory.records(roots).flat_map do |part|
+        JSON.parse(part[:instance].get_attribute(Main::ATTRIBUTE,'actual_holes_json','[]'))
       end
       return Main.export_mount_guides_csv if holes.empty?
       path=UI.savepanel('Координати на момент свердління — контрольний CSV',nil,'Drilling_coordinates_REVIEW.csv')
