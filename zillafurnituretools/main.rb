@@ -7,6 +7,7 @@ require_relative 'hardware'
 require_relative 'smart_joint'
 require_relative 'mounting'
 require_relative 'manufacturing'
+require_relative 'dashboard'
 
 module ZillaFurnitureTools
   module Main
@@ -107,7 +108,7 @@ module ZillaFurnitureTools
       children = child_entities.grep(Sketchup::Group) + child_entities.grep(Sketchup::ComponentInstance)
       faces = child_entities.grep(Sketchup::Face)
       edges = child_entities.grep(Sketchup::Edge)
-      if children.empty? && faces.size == 6 && edges.size == 12
+      if children.empty? && ((faces.size == 6 && edges.size == 12) || verified_drilled_stock?(instance))
         return if excluded
         panel = panel_from(instance, name, path.join('/'), transform)
         if panel
@@ -120,6 +121,46 @@ module ZillaFurnitureTools
       elsif !excluded
         skipped << "Non-rectangular geometry skipped: #{name}"
       end
+    end
+
+    # Only our recorded, closed drilled stock qualifies; arbitrary meshes do not.
+    def verified_drilled_stock?(instance)
+      raw=instance.get_attribute(ATTRIBUTE,'actual_holes_json')
+      return false unless raw && instance.definition.manifold?
+      holes=JSON.parse(raw)
+      return false if holes.empty?
+      box=instance.definition.bounds
+      return false unless rigid_transform?(instance.transformation)
+      stock=box.width.to_mm*box.height.to_mm*box.depth.to_mm
+      removed=holes.sum { |h| 16*(Float(h.fetch('diameter_mm'))/2)**2*Math.sin(Math::PI/16)*Float(h.fetch('depth_mm')) }
+      return false unless (instance.volume.to_f*25.4**3-(stock-removed)).abs<1.0
+      faces=instance.definition.entities.grep(Sketchup::Face)
+      (0..2).all? do |axis|
+        [box.min.to_a[axis],box.max.to_a[axis]].all? do |coordinate|
+          faces.any? { |f| f.normal.to_a[axis].abs>0.9999 && f.vertices.all? { |v| (v.position.to_a[axis]-coordinate).abs<0.00001 } }
+        end
+      end
+    rescue StandardError
+      false
+    end
+
+    def rigid_transform?(transform)
+      # Transformation#xaxis/yaxis/zaxis are normalized by SketchUp.
+      # Read the matrix to detect scale and shear, including homogeneous scale.
+      a=transform.to_a
+      return false unless a[15].abs>1.0e-10 && [3,7,11].all? { |i| a[i].abs<1.0e-10 }
+      axes=[0,4,8].map { |i| a[i,3].map { |v| v/a[15] } }
+      axes.all? { |v| (v.sum { |x| x*x }-1).abs<0.00001 } &&
+        axes.combination(2).all? { |u,v| (0..2).sum { |i| u[i]*v[i] }.abs<0.00001 }
+    end
+
+    def reject_existing_holes!(plan)
+      roots=Sketchup.active_model.entities.grep(Sketchup::Group)+Sketchup.active_model.entities.grep(Sketchup::ComponentInstance)
+      recorded=leaf_instances(roots).values.flat_map { |e,_| JSON.parse(e.get_attribute(ATTRIBUTE,'actual_holes_json','[]')) }
+      duplicate=plan[:holes].find do |h|
+        recorded.any? { |r| r['part_name']==h[:part_name] && 3.times.all? { |i| (r['xyz_mm'][i]-h[:xyz_mm][i]).abs<0.1 } }
+      end
+      raise "Отвір у #{duplicate[:part_name]} вже вирізано. Повторні мітки не створено." if duplicate
     end
 
     def panel_from(instance, name, id, transform)
@@ -319,6 +360,7 @@ module ZillaFurnitureTools
     end
 
     def add_mount_guides(plan, notify: true)
+      reject_existing_holes!(plan)
       model = Sketchup.active_model
       model.start_operation("ZFT: #{plan[:kind]} guides", true)
       begin
@@ -458,15 +500,7 @@ module ZillaFurnitureTools
     end
 
     unless defined?(@menu_installed) && @menu_installed
-      menu = UI.menu('Plugins')
-      menu.add_item('Zilla Furniture Tools — drill planner') { show_dialog }
-      menu.add_item('Zilla Furniture Tools — Smart Joint') { start_smart_joint }
-      menu.add_item('Zilla Furniture Tools — Drawer front guides') { drawer_front_guides }
-      menu.add_item('Zilla Furniture Tools — Drawer box: 4 corner joints') { drawer_box_guides }
-      menu.add_item('Zilla Furniture Tools — Slide guides') { slide_guides }
-      menu.add_item('Zilla Furniture Tools — Export mounting guides CSV') { export_mount_guides_csv }
-      menu.add_item('Zilla Furniture Tools — Apply OpenCutList edge plan CSV') { apply_edge_plan_dialog }
-      menu.add_item('Zilla Furniture Tools — Drill selected guides in new SKP') { drill_selected_guides_in_copy }
+      Dashboard.install
       @menu_installed = true
     end
   end

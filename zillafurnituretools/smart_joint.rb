@@ -172,6 +172,12 @@ module ZillaFurnitureTools
         return
       end
       model = Sketchup.active_model
+      begin
+        Main.reject_existing_holes!(@last_plan)
+      rescue StandardError => e
+        communicate(type: 'error', message: e.message)
+        return
+      end
       model.start_operation('ZFT: manual joint drill guides', true)
       begin
         group = model.active_entities.add_group

@@ -1,11 +1,17 @@
 # Zilla Furniture Tools
 
-SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.5.0**.
+SketchUp extension for sheet-material joints, OpenCutList edge materials and drilling. Current version: **0.6.0**.
+
+Open **Extensions → Zilla Furniture Tools → Панель інструментів**, or click **Z** on the visible Zilla toolbar. One Ukrainian panel brings together perspective/X-Ray, technical scenes, manual joints, drawer corners, edge banding and exports. The toolbar also has shortcuts **+** (joint), **4** (drawer corners), **X** (X-Ray).
+
+The three technical scenes live in `AC_Station_v5_TECHNICAL_REVIEW.skp`; the older v4 model does not contain them. Blue cylinders show hole axes, green means 2 mm edge band, red means nominal 0.5 mm. Use the clean `AC_Station_v5_drawer_joints_TEST.skp` for geometry export.
+
+The new CSV export writes 15 assigned AC Station LDSP panels in the Viyar text-import column order, without a header, using semicolons and UTF-8 BOM. It subtracts assigned nominal edge thickness from finished local dimensions. Plywood, holes and 3D coordinates are separate. The native 3D DXF preserves assembly geometry in millimeters; hidden instances, reference objects and generated guides are temporarily excluded and the model is restored. **It is not an ABF manufacturing export.** Recorded drilled rectangular panels can now be selected for joint planning after solid/volume checks; already-cut hole positions are rejected instead of creating duplicate guides.
 
 ## Install
 
 1. Run `python tools/build_rbz.py` from this repository.
-2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.5.0.rbz`.
+2. In SketchUp choose **Window → Extension Manager → Install Extension** and select `dist/ZillaFurnitureTools-v0.6.0.rbz`. Restart SketchUp after upgrading to replace the old separate menu entries.
 
 `Drawer box: 4 corner joints` plans all four joints of the named 18 mm drawer walls: normally 8 confirmats / 16 holes. Select the drawer assembly first. The bottom, facade and runners are separate connections. Smart Joint now also scans drawer components for manual joint placement. These remain provisional drilling profiles, not validated Viyar CNC programs.
 3. Select the cabinet assembly or individual panel components. Open the **Extensions** menu (called **Plugins** in the Ruby API).
