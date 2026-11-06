@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Validate the exported Viyar review package before a manual import trial."""
+"""Validate a Viyar review package against published DSP drilling limits.
+
+Reference: https://www.viyar.pro/service/doc/?cid=dsp&s=limitations
+"""
 from __future__ import annotations
 
 import csv
@@ -19,6 +22,7 @@ def verify(folder: Path) -> str:
     if len(parts) != manifest['parts_with_edge_plan']:
         raise ValueError('Part count differs from manifest')
     names = []
+    part_sizes = {}
     for row in parts:
         if len(row) != 10 or not all(float(row[i]) > 0 for i in (0, 1, 2)):
             raise ValueError(f'Invalid part dimensions/columns: {row}')
@@ -30,6 +34,7 @@ def verify(folder: Path) -> str:
         if min(effective_length, effective_width) < 50:
             raise ValueError(f'Viyar minimum 50 mm after edge allowance: {row[8]}')
         names.append(row[8])
+        part_sizes[row[8]] = (float(row[0]), float(row[1]))
     if any(count > 1 for count in Counter(names).values()):
         raise ValueError('Repeated part names need manual identity review')
     with (folder / '03_drilling_review.csv').open(encoding='utf-8', newline='') as stream:
@@ -41,6 +46,19 @@ def verify(folder: Path) -> str:
             raise ValueError(f'Hole has no exported part: {hole["part_name"]}')
         if not 0 < float(hole['diameter_mm']) <= 35 or float(hole['depth_mm']) <= 0:
             raise ValueError(f'Invalid hole: {hole}')
+        length, width = part_sizes[hole['part_name']]
+        if min(length, width) < 70 or max(length, width) < 200:
+            raise ValueError(f'Part below Viyar drilling minimum: {hole["part_name"]}')
+        diameter = float(hole['diameter_mm'])
+        depth = float(hole['depth_mm'])
+        if hole['operation'] == 'edge_pilot':
+            if diameter not in {4.5, 5, 6, 8, 10, 11, 12, 13, 14} or depth > 34:
+                raise ValueError(f'Unsupported edge drilling dimensions: {hole}')
+        elif abs(depth - 18) < 0.05:
+            if diameter not in {4, 5, 7, 8, 10}:
+                raise ValueError(f'Unsupported through-hole diameter: {hole}')
+        elif diameter not in {5, 6, 8, 10, 12, 15, 18, 20, 35} or depth > 15:
+            raise ValueError(f'Unsupported blind drilling dimensions: {hole}')
     if manifest['format'] == 'Viyar_saw_CSV_only' and '02_ABF_flatten_viyar.dxf' in manifest['files']:
         raise ValueError('CSV-only package mislabeled as ABF DXF')
     if '05_batch_face_drilling_TRIAL.dxf' in manifest['files']:
